@@ -1,0 +1,9 @@
+name: DiscordVerify
+author: alvin0319
+main: TeamBixby\DiscordVerify\DiscordVerify
+version: 1.0.0
+api: 3.0.0
+
+permissions:
+  discordverify.command.use:
+    default: true
