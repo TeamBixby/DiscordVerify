@@ -8,6 +8,7 @@ use ClassLoader;
 use pocketmine\utils\MainLogger;
 use TeamBixby\DiscordVerify\util\DiscordException;
 use Thread;
+use Throwable;
 use Volatile;
 use function get_class;
 use function gettype;
@@ -60,35 +61,36 @@ class DiscordThread extends Thread{
 		$this->outboundQueue = $outboundQueue;
 	}
 
-	/**
-	 * @throws DiscordException
-	 */
 	public function run() : void{
 		$this->classLoader->register();
 
-		$this->shutdown = false;
+		try{
+			$this->shutdown = false;
 
-		$sendSock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-		$recvSock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+			$sendSock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+			$recvSock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 
-		socket_set_nonblock($recvSock);
+			socket_set_nonblock($recvSock);
 
-		if($sendSock === false || $recvSock === false){
-			throw DiscordException::wrap("Failed to create socket");
+			if($sendSock === false || $recvSock === false){
+				throw DiscordException::wrap("Failed to create socket");
+			}
+
+			if(@socket_bind($recvSock, "0.0.0.0", $this->bindPort) === false){
+				throw DiscordException::wrap("Failed to bind port");
+			}
+
+			socket_set_nonblock($recvSock);
+
+			while(!$this->shutdown){
+				$this->receiveData($recvSock);
+				$this->sendData($sendSock);
+			}
+			socket_close($recvSock);
+			socket_close($sendSock);
+		}catch(Throwable $e){
+			MainLogger::getLogger()->logException($e);
 		}
-
-		if(@socket_bind($recvSock, "0.0.0.0", $this->bindPort) === false){
-			throw DiscordException::wrap("Failed to bind port");
-		}
-
-		socket_set_nonblock($recvSock);
-
-		while(!$this->shutdown){
-			$this->receiveData($recvSock);
-			$this->sendData($sendSock);
-		}
-		socket_close($recvSock);
-		socket_close($sendSock);
 	}
 
 	/**
