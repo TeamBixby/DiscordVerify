@@ -22,12 +22,14 @@ use const PTHREADS_INHERIT_ALL;
 final class DiscordVerify extends PluginBase{
 	use SingletonTrait;
 
-	public const ACTION_VERIFIED = "verified";
-	public const ACTION_UNVERIFIED = "unverified";
+    public const PREFIX = "§l§8[§9Discord§fVerify§8]§r ";
+    public const ACTION_VERIFIED = "verified";
+    public const ACTION_UNVERIFIED = "unverified";
+    public $discord_link;
 
-	protected Volatile $inboundQueue;
+    protected Volatile $inboundQueue;
 
-	protected Volatile $outboundQueue;
+    protected Volatile $outboundQueue;
 
 	protected DiscordThread $thread;
 
@@ -48,6 +50,8 @@ final class DiscordVerify extends PluginBase{
 			$this->getServer()->getPluginManager()->disablePlugin($this);
 			return;
 		}
+
+		$this->discord_link = $config->get("discordLink", null) == null ? "" : " (" . $config->get("discordLink") . ")";
 
 		$this->inboundQueue = new Volatile();
 		$this->outboundQueue = new Volatile();
@@ -77,7 +81,7 @@ final class DiscordVerify extends PluginBase{
 						$player = $data["player"];
 						$this->data[strtolower($player)] = $data["discordId"];
 						if(($player = $this->getServer()->getPlayerExact($player)) !== null){
-							$player->sendMessage(TextFormat::GREEN . "You've verified!");
+							$player->sendMessage(self::PREFIX.TextFormat::GREEN . "You've verified!");
 						}
 						break;
 					case self::ACTION_UNVERIFIED:
@@ -85,7 +89,7 @@ final class DiscordVerify extends PluginBase{
 						if(isset($this->data[strtolower($player)])){
 							unset($this->data[strtolower($player)]);
 							if(($player = $this->getServer()->getPlayerExact($player)) !== null){
-								$player->sendMessage(TextFormat::GREEN . "You've unverified!");
+								$player->sendMessage(self::PREFIX.TextFormat::GREEN . "You've unverified!");
 							}
 						}
 						break;
