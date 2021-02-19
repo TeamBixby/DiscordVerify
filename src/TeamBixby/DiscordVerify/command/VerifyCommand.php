@@ -15,7 +15,8 @@ use function substr;
 class VerifyCommand extends PluginCommand{
 
 	public function __construct(){
-		parent::__construct("verify", DiscordVerify::getInstance());
+		parent::__construct(DiscordVerify::getInstance()->translateString("command.name"), DiscordVerify::getInstance());
+		$this->setDescription(DiscordVerify::getInstance()->translateString("command.description"));
 		$this->setPermission("discordverify.command.use");
 	}
 
@@ -28,14 +29,16 @@ class VerifyCommand extends PluginCommand{
 			return false;
 		}
 		if(DiscordVerify::getInstance()->isVerified($sender->getName())){
-			$sender->sendMessage(TextFormat::RED . "You are already verified.");
+			$sender->sendMessage(TextFormat::RED . DiscordVerify::getInstance()->translateString("command.generic.alreadyVerified"));
 			return false;
 		}
 		DiscordVerify::getInstance()->addQueue([
 			"player" => $sender->getName(),
 			"random_token" => $token = substr(UUID::fromRandom()->toString(), 0, 6)
 		]);
-		$sender->sendMessage(TextFormat::GREEN . "Use the verify command on Discord server using " . $token);
+		$sender->sendMessage(TextFormat::GREEN . DiscordVerify::getInstance()->translateString("command.generic.useTokenAt", [
+			"token" => $token
+			]));
 		return true;
 	}
 }

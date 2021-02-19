@@ -11,11 +11,14 @@ use pocketmine\utils\TextFormat;
 use TeamBixby\DiscordVerify\command\VerifyCommand;
 use TeamBixby\DiscordVerify\util\DiscordException;
 use Volatile;
+use function count;
 use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
 use function json_decode;
 use function json_encode;
+use function parse_ini_string;
+use function str_replace;
 use function strtolower;
 use const PTHREADS_INHERIT_ALL;
 
@@ -35,12 +38,18 @@ final class DiscordVerify extends PluginBase{
 
 	protected bool $canThreadClose = false;
 
+	protected array $messageDB = [];
+
 	public function onLoad() : void{
 		self::setInstance($this);
 	}
 
 	public function onEnable() : void{
 		$this->saveDefaultConfig();
+		$this->saveResource("message.ini");
+
+		$this->messageDB = parse_ini_string(file_get_contents($this->getDataFolder() . "message.ini"));
+
 		$config = $this->getConfig();
 
 		if($config->get("address", null) === null || $config->get("port", null) === null || $config->get("password", null) === null || $config->get("bindPort", null) === null){
@@ -77,7 +86,7 @@ final class DiscordVerify extends PluginBase{
 						$player = $data["player"];
 						$this->data[strtolower($player)] = $data["discordId"];
 						if(($player = $this->getServer()->getPlayerExact($player)) !== null){
-							$player->sendMessage(TextFormat::GREEN . "You've verified!");
+							$player->sendMessage(TextFormat::GREEN . $this->translateString("socket.verified"));
 						}
 						break;
 					case self::ACTION_UNVERIFIED:
@@ -85,7 +94,7 @@ final class DiscordVerify extends PluginBase{
 						if(isset($this->data[strtolower($player)])){
 							unset($this->data[strtolower($player)]);
 							if(($player = $this->getServer()->getPlayerExact($player)) !== null){
-								$player->sendMessage(TextFormat::GREEN . "You've unverified!");
+								$player->sendMessage(TextFormat::GREEN . $this->translateString("socket.unverified"));
 							}
 						}
 						break;
@@ -112,5 +121,15 @@ final class DiscordVerify extends PluginBase{
 
 	public function isVerified(string $player) : bool{
 		return isset($this->data[strtolower($player)]);
+	}
+
+	public function translateString(string $key, array $params = []) : string{
+		$message = $this->messageDB[$key] ?? "";
+		if(count($params) > 0){
+			foreach($params as $paramKey => $param){
+				$message = str_replace("{{$paramKey}}", $param, $message);
+			}
+		}
+		return $message;
 	}
 }
